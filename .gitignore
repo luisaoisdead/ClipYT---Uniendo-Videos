@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Entornos virtuales
+venv/
+env/
+.venv/
+
+# Archivos de Video y Audio (evitar subir material pesado)
+*.mp4
+*.mp3
+*.wav
+*.avi
+*.mkv
+*.mov
+unido.mp4
+
+# Ejecutables y herramientas de FFmpeg
+ffmpeg.exe
+ffplay.exe
+ffprobe.exe
+ffmpeg-8.1.1-essentials_build/
+
+# Archivos temporales generados por la app
+temp_videos.txt
+temp_preview_clipyt.mp4
