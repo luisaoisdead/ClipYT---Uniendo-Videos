@@ -14,7 +14,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
         
-        self.title("ClipYT - Estudio de Mezcla y Edición Avanzada (v7.2 Stable Master)")
+        self.title("ClipYT - Estudio de Mezcla y Edición Avanzada (v7.3 Final Absolute)")
         self.geometry("980x820")
         self.resizable(False, False)
         self.configure(bg="#1a1a1a")
@@ -42,7 +42,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         self.frame_header.pack_propagate(False)
         
         self.lbl_titulo = ctk.CTkLabel(
-            self.frame_header, text="🎬 ClipYT Multi-Track Editor Pro v7.2", 
+            self.frame_header, text="🎬 ClipYT Multi-Track Editor Pro v7.3", 
             font=ctk.CTkFont(family="Arial", size=18, weight="bold"), text_color="#ffffff"
         )
         self.lbl_titulo.pack(side=tk.LEFT, padx=20, pady=12)
@@ -186,7 +186,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
                 lista_datos.append(ruta)
                 lista_ui.insert(tk.END, f" 🎵  {os.path.basename(ruta)}")
             else:
-                messagebox.showwarning("Formato incorrecto", f"El archivo {os.path.basename(ruta)} no corresponds a esta pista.")
+                messagebox.showwarning("Formato incorrecto", f"El archivo {os.path.basename(ruta)} no corresponde a esta pista.")
 
     def mover_item(self, lista_ui, lista_datos, direccion):
         seleccion = lista_ui.curselection()
@@ -252,7 +252,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
                     'ffprobe', '-v', 'error', '-show_entries', 'format=duration',
                     '-of', 'default=noprint_wrappers=1:nokey=1', video
                 ]
-                # CORREGIDO: Eliminado el error de sintaxis en stderr
+                # FIJADO: Sintaxis de stderr limpia
                 resultado = subprocess.run(comando, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
                 dur = resultado.stdout.decode('utf-8').strip()
                 if dur: total_segs += float(dur)
@@ -265,7 +265,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
             self.tiempo_actual = float(valor)
             if self.timer_debouncer:
                 self.after_cancel(self.timer_debouncer)
-            self.timer_debouncer = self.after(300, self.ejecutar_salto_tiempo_seguro)
+            self.timer_debouncer = self.after(350, self.ejecutar_salto_tiempo_seguro)
 
     def ejecutar_salto_tiempo_seguro(self):
         if self.reproduciendo:
@@ -362,7 +362,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         if self.pista_audio3: inputs_amix += "[pista3_lista]"; num_entradas += 1
         filtro_master += f"{inputs_amix}amix=inputs={num_entradas}:duration=first:dropout_transition=0[audio_master]"
 
-        comando += ['-filter_complex', filtro_master, '-map', '0:v', '-map', '[audio_master]']
+        comando += ['filter_complex', filtro_master, '-map', '0:v', '-map', '[audio_master]']
         if es_preview:
             comando += ['-c:v', 'libx264', '-preset', 'ultrafast', '-crf', '28', '-vf', 'scale=-2:360', '-c:a', 'aac', archivo_salida]
         else:
@@ -382,7 +382,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         self.matar_reproductor_activo() 
         archivo_temp_preview = "temp_preview_clipyt.mp4"
         
-        # CORREGIDO: Eliminada asignación duplicada de variable
+        # FIJADO: Limpiada la doble asignación conflictiva
         comando = self.armar_filtro_complejo(archivo_temp_preview, es_preview=True)
         
         try:
@@ -424,8 +424,8 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
             archivo
         ]
         
+        # FIJADO DEFINITIVO: Sin .wait(), ffplay corre suelto de forma paralela real en Windows
         self.proceso_player = subprocess.Popen(comando_play, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        self.proceso_player.wait()
 
     def guardar_render_final(self):
         archivo_salida = filedialog.asksaveasfilename(
