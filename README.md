@@ -1,6 +1,6 @@
 # ClipYT - Estudio de Mezcla y Edición Avanzada
 
-Para que este programa funcione correctamente, necesitas los binarios de **FFmpeg**, que es el motor encargado de procesar, unir y reproducir los videos y audios en segundo plano.
+Para que este programa funcione correctamente, necesitas los binarios de **FFmpeg**, que es el motor encargado de procesar, unir y reproducir los videos y audios en segundo plano. (Solo pensado para WINDOWS)
 
 ## Requisitos Previos: Archivos "FF"
 
