@@ -1,6 +1,5 @@
 import os
 import subprocess
-import json
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import customtkinter as ctk
@@ -13,8 +12,8 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
     def __init__(self):
         super().__init__()
         
-        self.title("ClipYT - Estudio de Mezcla y Edición Avanzada (v5.5)")
-        self.geometry("980x780")
+        self.title("ClipYT - Estudio de Mezcla y Edición Avanzada (v6.0)")
+        self.geometry("980x820")
         self.resizable(False, False)
         self.configure(bg="#1a1a1a")
         
@@ -23,10 +22,15 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         self.pista_audio2 = []
         self.pista_audio3 = []
         
-        # Referencias a los componentes Listbox de la UI para limpiarlos directamente
+        # Referencias a los componentes Listbox
         self.lista_v_ui = None
         self.lista_a2_ui = None
         self.lista_a3_ui = None
+        
+        # Variables de control para la barra de progreso interna
+        self.reproduciendo = False
+        self.tiempo_actual = 0.0
+        self.duracion_total = 0.0
         
         # --- ENCABEZADO ---
         self.frame_header = ctk.CTkFrame(self, height=55, fg_color="#252525", corner_radius=0)
@@ -43,13 +47,8 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         self.frame_pistas = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_pistas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=15, pady=15)
 
-        # 1. CANAL DE VIDEO
         self.lista_v_ui = self.crear_seccion_pista(self.frame_pistas, "🎥 PISTA DE VIDEO (Clips Secuenciales)", "video", self.pista_videos)
-        
-        # 2. CANAL AUDIO 2
         self.lista_a2_ui = self.crear_seccion_pista(self.frame_pistas, "🎵 PISTA DE AUDIO 2 (Múltiples audios)", "audio2", self.pista_audio2)
-        
-        # 3. CANAL AUDIO 3
         self.lista_a3_ui = self.crear_seccion_pista(self.frame_pistas, "🎵 PISTA DE AUDIO 3 (Múltiples audios)", "audio3", self.pista_audio3)
 
         # --- PANEL DE CONTROL Y MEZCLA (DERECHA) ---
@@ -91,12 +90,23 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         self.check_suave_a3 = ctk.CTkCheckBox(self.frame_ctrl_a3, text="Suavizar Transiciones (Crossfade)", font=ctk.CTkFont(size=11))
         self.check_suave_a3.pack(anchor=tk.W, padx=10, pady=(0,5))
 
+        # --- NUEVA SECCIÓN: BARRA DE PROGRESO EN LA VENTANA PRINCIPAL ---
+        self.frame_timeline_interno = ctk.CTkFrame(self.frame_mezclador, fg_color="#1a1a1a", border_width=1, border_color="#333333")
+        self.frame_timeline_interno.pack(fill=tk.X, padx=15, pady=(25, 5))
+        
+        self.lbl_reloj_interno = ctk.CTkLabel(self.frame_timeline_interno, text="00:00 / 00:00", font=ctk.CTkFont(family="Arial", size=12, weight="bold"))
+        self.lbl_reloj_interno.pack(pady=(5, 2))
+        
+        self.progress_timeline = ctk.CTkProgressBar(self.frame_timeline_interno, progress_color="#2ecc71", fg_color="#333333", height=10)
+        self.progress_timeline.set(0.0)
+        self.progress_timeline.pack(fill=tk.X, padx=15, pady=(0, 10))
+
         # --- BOTONERA ACCIONES DE SALIDA ---
         self.btn_preview = ctk.CTkButton(
             self.frame_mezclador, text="👁️ PREVISUALIZAR EN VIVO", fg_color="#3498db", hover_color="#2980b9",
             text_color="#ffffff", font=ctk.CTkFont(weight="bold"), height=45, command=self.previsualizar_en_vivo
         )
-        self.btn_preview.pack(fill=tk.X, padx=15, pady=(40, 10))
+        self.btn_preview.pack(fill=tk.X, padx=15, pady=(15, 10))
 
         self.btn_guardar = ctk.CTkButton(
             self.frame_mezclador, text="💾 GUARDAR COMPILACIÓN", fg_color="#2ecc71", hover_color="#27ae60",
@@ -220,6 +230,11 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
         self.check_suave_a2.deselect()
         self.check_suave_a3.deselect()
         
+        # Resetear barra interna
+        self.reproduciendo = False
+        self.progress_timeline.set(0.0)
+        self.lbl_reloj_interno.configure(text="00:00 / 00:00")
+        
         messagebox.showinfo("Limpieza", "Se vaciaron todas las pistas y controles con éxito.")
 
     def obtener_duracion_total_videos(self):
@@ -235,7 +250,33 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
                 if dur: total_segs += float(dur)
             except Exception:
                 pass
-        return total_segs if total_segs > 0 else 10.0
+        return total_segs if total_segs > 0 else 1.0
+
+    # --- RELOJ INTERNO ASÍNCRONO ---
+    def actualizar_barra_progreso(self):
+        if not self.reproduciendo:
+            return
+        
+        if self.tiempo_actual < self.duracion_total:
+            self.tiempo_actual += 1.0
+            
+            # Calcular porcentaje de la barra (valor entre 0.0 y 1.0)
+            porcentaje = min(self.tiempo_actual / self.duracion_total, 1.0)
+            self.progress_timeline.set(porcentaje)
+            
+            # Formatear strings del reloj
+            min_cur = int(self.tiempo_actual // 60)
+            seg_cur = int(self.tiempo_actual % 60)
+            min_tot = int(self.duracion_total // 60)
+            seg_tot = int(self.duracion_total % 60)
+            
+            self.lbl_reloj_interno.configure(text=f"{min_cur:02d}:{seg_cur:02d} / {min_tot:02d}:{seg_tot:02d}")
+            
+            # Volver a llamarse dentro de 1000 milisegundos (1 segundo)
+            self.after(1000, self.actualizar_barra_progreso)
+        else:
+            self.reproduciendo = False
+            self.progress_timeline.set(1.0)
 
     def armar_filtro_complejo(self, archivo_salida, es_preview=False):
         if not self.pista_videos:
@@ -311,7 +352,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
             
         return comando
 
-    # --- PREVISUALIZACIÓN BLINDADA CON LÍNEA DE ESTADO NATIVA ---
+    # --- PREVISUALIZACIÓN CON CONTROLES INTEGRADOS EN TU VENTANA ---
     def previsualizar_en_vivo(self):
         if not self.pista_videos:
             messagebox.showwarning("Error", "La pista de video no puede estar vacía.")
@@ -325,33 +366,38 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
             self.config(cursor="watch")
             self.update()
             
-            # 1. Generamos el render express base (vuelve a ser veloz y estable al 100%)
+            # 1. Generar render express
             subprocess.run(comando, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
-            # Extraemos los minutos y segundos totales para el título
-            duracion_total = self.obtener_duracion_total_videos()
-            min_tot = int(duracion_total // 60)
-            seg_tot = int(duracion_total % 60)
-            str_total = f"{min_tot:02d}:{seg_tot:02d}"
-
-            # 2. Lanzamos FFPLAY nativo sin filtros de dibujo conflictivos
-            # Nota: Al reproducir, FFplay muestra el reloj actual en la consola o barra superior
+            # 2. Inicializar la barra de progreso interna en la GUI
+            self.duracion_total = self.obtener_duracion_total_videos()
+            self.tiempo_actual = 0.0
+            self.reproduciendo = True
+            
+            min_tot = int(self.duracion_total // 60)
+            seg_tot = int(self.duracion_total % 60)
+            self.lbl_reloj_interno.configure(text=f"00:00 / {min_tot:02d}:{seg_tot:02d}")
+            self.progress_timeline.set(0.0)
+            
+            # Arrancar reloj asíncrono
+            self.actualizar_barra_progreso()
+            
+            # 3. Lanzar FFPLAY limpio (sin barras encima del video)
             comando_play = [
                 'ffplay', 
                 '-autoexit', 
                 '-x', '854', '-y', '480',
                 '-infbuf',
-                '-window_title', f'ClipYT Player (Largo Total: {str_total}) | [Click Izq = Navegar Tiempo | ESPACIO = Pausa | ESC = Salir]',
+                '-window_title', f'ClipYT Player | [ESPACIO = Pausa | ESC = Salir]',
                 archivo_temp_preview
             ]
             subprocess.run(comando_play, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             
-        except subprocess.CalledProcessError as e:
-            messagebox.showerror("Error de Previsualización", f"Fallo en el motor de renderizado express.\nDetalle: {e.stderr.decode(errors='ignore')}")
         except Exception as e:
             messagebox.showerror("Error", f"Ocurrió un problema con el reproductor.\nDetalle: {str(e)}")
         finally:
             self.config(cursor="")
+            self.reproduciendo = False # Detener reloj al cerrar video
             for f in ["temp_videos.txt", archivo_temp_preview]:
                 if os.path.exists(f): os.remove(f)
 
@@ -369,7 +415,7 @@ class AppEstudioEdicionClipYT(TkinterDnD.Tk):
             self.update()
             
             subprocess.run(comando, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            messagebox.showinfo("¡Éxito!", f"Render completado con éxito sin pérdida de bitrate en video.\nArchivo: {archivo_salida}")
+            messagebox.showinfo("¡Éxito!", f"Render completado con éxito sin pérdida de calidad en video.\nArchivo: {archivo_salida}")
         except subprocess.CalledProcessError as e:
             messagebox.showerror("Error en Render FFmpeg", f"Fallo en la matriz de filtros:\n{e.stderr.decode(errors='ignore')}")
         finally:
