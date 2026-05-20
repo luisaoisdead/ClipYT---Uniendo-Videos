@@ -15,6 +15,7 @@ env/
 *.avi
 *.mkv
 *.mov
+*.png
 unido.mp4
 
 # Ejecutables y herramientas de FFmpeg
