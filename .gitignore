@@ -9,13 +9,13 @@ env/
 .venv/
 
 # Archivos de Video y Audio (evitar subir material pesado)
-*.mp4
+#*.mp4
 *.mp3
 *.wav
 *.avi
 *.mkv
 *.mov
-*.png
+#*.png
 unido.mp4
 
 # Ejecutables y herramientas de FFmpeg
